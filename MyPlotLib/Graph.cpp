@@ -55,6 +55,10 @@ sf::Vector2f Graph::getTopRight() const {
     return _topRight;
 }
 
+sf::Texture Graph::getTexture() const {
+    return _texture.getTexture();
+}
+
 //Constructor Implementation
 
 Graph::Graph(const sf::RectangleShape& graphBox, const sf::Vector2f& bottomLeft, const sf::Vector2f& topRight, const std::string& title, const int& fontSize, const sf::Font& font) {

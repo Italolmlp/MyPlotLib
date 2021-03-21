@@ -36,6 +36,7 @@ public:
     sf::Font getFont() const;
     sf::Vector2f getBottomLeft() const;
     sf::Vector2f getTopRight() const;
+    sf::Texture getTexture() const;
     
     //Conversion Function
 
