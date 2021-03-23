@@ -5,9 +5,10 @@
 
 void Graph::setGraphBox(const sf::RectangleShape& graphBox) {
     _graphBox = graphBox;
-    _graphBox.setFillColor(sf::Color::White);
+    _graphBox.setFillColor(sf::Color::Transparent);
     _graphBox.setOutlineColor(sf::Color::Black);
     _graphBox.setOutlineThickness(2);
+    _graphTexture.create(_graphBox.getLocalBounds().width,_graphBox.getLocalBounds().height);
 }            
 
 void Graph::setPlotBox(const sf::RectangleShape& plotBox) {
@@ -17,7 +18,7 @@ void Graph::setPlotBox(const sf::RectangleShape& plotBox) {
     _plotBox.setOutlineThickness(2);
     sf::ContextSettings settings;
     settings.antialiasingLevel = 16;
-    _texture.create(plotBox.getLocalBounds().width,plotBox.getLocalBounds().height, settings);
+    _plotTexture.create(plotBox.getLocalBounds().width,plotBox.getLocalBounds().height, settings);
 }
 
 void Graph::setTitle(const std::string& title) {
@@ -153,8 +154,8 @@ sf::Vector2f Graph::getTopRight() const {
     return _topRight;
 }
 
-sf::Texture Graph::getTexture() const {
-    return _texture.getTexture();
+sf::Texture Graph::getPlotTexture() const {
+    return _plotTexture.getTexture();
 }
 
 sf::Text Graph::getText() const {
@@ -174,29 +175,30 @@ Graph::Graph(const sf::RectangleShape& graphBox, const sf::RectangleShape& plotB
     setText();
     setXScale(bottomLeft.x, topRight.x, plotBox.getLocalBounds().width/100);
     setYScale(bottomLeft.y, topRight.y, plotBox.getLocalBounds().height/100);
+    display();
 }
 
 //Conversion Function
 
 sf::Vector2f Graph::convertPoint(const sf::Vector2f& point) const {
-
     sf::Vector2f realPoint{};
-    realPoint.x = (point.x - _bottomLeft.x)*((_plotBox.getLocalBounds().width)/(_topRight.x-_bottomLeft.x));
-    realPoint.y = (_topRight.y + _bottomLeft.y - point.y)*((_plotBox.getLocalBounds().height)/(_topRight.y-_bottomLeft.y));
+
+    realPoint.x = 0.5f + (point.x - _bottomLeft.x)*((_plotTexture.getTexture().getSize().x-1)/(_topRight.x-_bottomLeft.x));
+    realPoint.y = 0.5f + (_topRight.y - point.y)*((_plotTexture.getTexture().getSize().y-1)/(_topRight.y-_bottomLeft.y));
     return realPoint;
 
 }
 
 //Basic Plot Functions Implementations
-void Graph::clear(const sf::Color& color) {
-    _texture.clear(color);
+void Graph::plotClear(const sf::Color& color) {
+    _plotTexture.clear(color);
 }
 
 void Graph::plotPoint(const sf::Vector2f& point, const sf::Color& color) {
     sf::Vector2f realPoint = convertPoint(point);
 
     sf::Vertex  pointVertex[] = {sf::Vertex(realPoint,color)};
-    _texture.draw(pointVertex, 1, sf::Points);
+    _plotTexture.draw(pointVertex, 1, sf::Points);
 
 }    
 
@@ -208,7 +210,7 @@ void Graph::plotLine(const sf::Vector2f& startPoint, const sf::Vector2f& endPoin
         sf::Vertex(realStartPoint, color),
         sf::Vertex(realEndPoint, color)
     };
-    _texture.draw(line, 2, sf::Lines);
+    _plotTexture.draw(line, 2, sf::Lines);
 }
 
 //Plot Functions Implementations
@@ -234,7 +236,7 @@ void Graph::plotData(const std::vector< sf::Vector2f >& data, const bool& drawLi
 
 void Graph::plotFunction(const std::function<double(const double&)>& f, const sf::Color& color) {
     
-    int N = _texture.getTexture().getSize().x;
+    int N = _plotTexture.getTexture().getSize().x;
 
     std::vector< sf::Vector2f > data{};
 
@@ -253,7 +255,64 @@ void Graph::plotFunction(const std::function<double(const double&)>& f, const sf
 //Display Function Implementation
 
 void Graph::display() {
-    _texture.display();
+    _plotTexture.display();
+    
+    sf::Sprite sprite;
+    
+    sprite.setTexture(_plotTexture.getTexture());
+    
+    sprite.setOrigin(
+        sprite.getLocalBounds().left + 0.5f*sprite.getLocalBounds().width,
+        sprite.getLocalBounds().top + 0.5f*sprite.getLocalBounds().height
+    );
+    
+    sprite.setPosition(
+        _plotBox.getGlobalBounds().left + 0.5f*_plotBox.getGlobalBounds().width - _graphBox.getGlobalBounds().left,
+        _plotBox.getGlobalBounds().top + 0.5f*_plotBox.getGlobalBounds().height - _graphBox.getGlobalBounds().top        
+    );
+
+    _graphTexture.clear(sf::Color::White);
+
+    sf::RectangleShape aux = _plotBox;
+    aux.move(
+        -_graphBox.getGlobalBounds().left,
+        -_graphBox.getGlobalBounds().top
+    );
+    _graphTexture.draw(aux);
+
+    aux = _graphBox;
+    aux.move(
+        -_graphBox.getGlobalBounds().left,
+        -_graphBox.getGlobalBounds().top
+    );
+    _graphTexture.draw(aux);
+    
+    for(sf::Text v : _xScale) {
+        sf::Text aux_ = v;
+        aux_.move(
+          -_graphBox.getGlobalBounds().left,
+          -_graphBox.getGlobalBounds().top  
+        );
+        _graphTexture.draw(aux_);
+    }
+    
+    for(sf::Text v : _yScale) {
+        sf::Text aux_ = v;
+        aux_.move(
+          -_graphBox.getGlobalBounds().left,
+          -_graphBox.getGlobalBounds().top  
+        );
+        _graphTexture.draw(aux_);
+    }    
+    
+    sf::Text aux_ = _text;
+    aux_.move(
+        -_graphBox.getGlobalBounds().left,
+        -_graphBox.getGlobalBounds().top  
+    );
+    _graphTexture.draw(aux_);
+    _graphTexture.draw(sprite);
+    _graphTexture.display();
 }
 
 //Draw Function Implementation
@@ -262,23 +321,17 @@ void Graph::draw(sf::RenderTarget& target, sf::RenderStates states) const{
     
     sf::Sprite sprite;
 
-    sprite.setTexture(_texture.getTexture());
+    sprite.setTexture(_graphTexture.getTexture());
 
-    sprite.setOrigin(sf::Vector2f(
-       sprite.getGlobalBounds().left + sprite.getGlobalBounds().width/2,
-        sprite.getGlobalBounds().top + sprite.getGlobalBounds().height/2  
-    ));
+    sprite.setOrigin(
+        sprite.getLocalBounds().left,
+        sprite.getLocalBounds().top
+    );
 
     sprite.setPosition(sf::Vector2f(
-        _plotBox.getGlobalBounds().left + _plotBox.getGlobalBounds().width/2,
-        _plotBox.getGlobalBounds().top + _plotBox.getGlobalBounds().height/2
+        _graphBox.getGlobalBounds().left,
+        _graphBox.getGlobalBounds().top
     ));
 
-    target.draw(_graphBox);
-    target.draw(_text);
-    for(sf::Text v : _xScale) {
-        target.draw(v);
-    }
-    target.draw(_plotBox);
     target.draw(sprite);
 }
