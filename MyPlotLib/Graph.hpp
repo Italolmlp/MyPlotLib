@@ -12,7 +12,7 @@ class Graph : public sf::Drawable {
 
 private:
     sf::RectangleShape _graphBox{}, _plotBox{};
-    sf::RenderTexture _texture{};
+    sf::RenderTexture _graphTexture{}, _plotTexture;
     sf::Vector2f _bottomLeft{}, _topRight{};
     std::string _title{};
     int _fontSize{};
@@ -47,7 +47,8 @@ public:
     sf::Font getFont() const;
     sf::Vector2f getBottomLeft() const;
     sf::Vector2f getTopRight() const;
-    sf::Texture getTexture() const;
+    sf::Texture getPlotTexture() const;
+    sf::Texture getGraphTexture() const;
     sf::Text getText() const;
     
     //Conversion Function
@@ -56,7 +57,7 @@ public:
 
     //Basic Plot Functions
 
-    void clear(const sf::Color& color = sf::Color::White);
+    void plotClear(const sf::Color& color = sf::Color::White);
     void plotPoint(const sf::Vector2f& point, const sf::Color& color = sf::Color::Black);
     void plotLine(const sf::Vector2f& startPoint, const sf::Vector2f& endPoint, const sf::Color& color = sf::Color::Black);
 
@@ -66,7 +67,7 @@ public:
     void plotFunction(const std::function<double(const double&)>& f, const sf::Color& color );
 
     //Display Function
-    void display();
+    void display(); 
     
     //Draw Function
 
